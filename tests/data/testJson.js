@@ -142,6 +142,37 @@ const testCases = [
         },
     },
     {
+        name: 'go: simple print',
+        reqObject: {
+            language: 'go',
+            script: `
+package main
+import "fmt"
+func main() {
+    fmt.Println("Hello, Go!")
+}`,
+            stdin: '',
+        },
+        expectedResponse: {
+            val: 'Hello, Go!\n',
+            status: 200,
+            error: 0,
+        },
+    },
+    {
+        name: 'php: simple print',
+        reqObject: {
+            language: 'php',
+            script: '<?php echo "Hello, PHP!"; ?>',
+            stdin: '',
+        },
+        expectedResponse: {
+            val: 'Hello, PHP!',
+            status: 200,
+            error: 0,
+        },
+    },
+    {
         name: 'java : print stdin',
         reqObject: {
             language: 'java',
@@ -188,7 +219,7 @@ const testCases = [
         reqObject: {
             language: 'ruby',
             script:
-                'print "hello world"'
+                'print "hello world"',
         },
         expectedResponse: {
             val: 'hello world',
@@ -203,7 +234,7 @@ const testCases = [
             script:
                 'user_input = gets.chomp\n' +
                 'puts user_input',
-            stdin: '10\n'
+            stdin: '10\n',
         },
         expectedResponse: {
             val: '10\n',
@@ -272,6 +303,90 @@ const testCases = [
             val: 'Memory limit exceeded',
             status: 200,
             error: 1,
+        },
+    },
+    {
+        name: 'go: addition',
+        reqObject: {
+            language: 'go',
+            script: `
+package main
+import "fmt"
+func main() {
+var a, b int
+fmt.Scanf("%d %d", &a, &b)
+fmt.Println(a + b)
+}`,
+            stdin: '5 3',
+        },
+        expectedResponse: {
+            val: '8\n',
+            status: 200,
+            error: 0,
+        },
+    },
+    {
+        name: 'go: factorial calculation',
+        reqObject: {
+            language: 'go',
+            script: `
+package main
+import "fmt"
+func factorial(n int) int {
+if n == 0 {
+    return 1
+}
+return n * factorial(n-1)
+}
+func main() {
+var n int
+fmt.Scanf("%d", &n)
+fmt.Println(factorial(n))
+}`,
+            stdin: '5',
+        },
+        expectedResponse: {
+            val: '120\n',
+            status: 200,
+            error: 0,
+        },
+    },
+    {
+        name: 'php: addition',
+        reqObject: {
+            language: 'php',
+            script: `<?php
+fscanf(STDIN, "%d %d", $a, $b);
+echo $a + $b;
+?>`,
+            stdin: '5 3',
+        },
+        expectedResponse: {
+            val: '8',
+            status: 200,
+            error: 0,
+        },
+    },
+    {
+        name: 'php: factorial calculation',
+        reqObject: {
+            language: 'php',
+            script: `<?php
+function factorial($n) {
+if ($n == 0) {
+    return 1;
+}
+return $n * factorial($n - 1);
+}
+fscanf(STDIN, "%d", $n);
+echo factorial($n);
+?>`,
+            stdin: '5',
+        },
+        expectedResponse: {
+            val: '120',
+            status: 200,
+            error: 0,
         },
     },
     {

@@ -13,10 +13,10 @@ const { LANGUAGES_CONFIG } = require('../configs/language.config')
 const Joi = require('joi')
 const memoryUsedThreshold = process.env.MEMORY_USED_THRESHOLD || 512
 const getDefaultAIEvalSystemPrompt = require('../helpers/defaultAIEvalSystemPrompt')
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer')
 const express = require('express')
 const http = require('http')
-const { spawn } = require('child_process');
+const { spawn } = require('child_process')
 const appConfig = require('../configs/app.config.js')
 const { FRONTEND_STATIC_JASMINE } = require('../enums/supportedMultifileSetupTypes.js')
 const axios = require('axios')
@@ -189,6 +189,98 @@ const _executePrompt = async (
         }
     })
     return { allValidResponses, errorResponsesCount }
+}
+const _executePhpCode = async (req, res, response) => {
+    let code = null
+    let language = null
+    let stdin = null
+
+    try {
+        code = req.script
+        language = req.language
+        stdin = req.stdin
+
+        const langConfig = LANGUAGES_CONFIG[language]
+
+        // Clean up existing temporary files (if any)
+        await _runScript('rm -rf /tmp/*', res)
+
+        // Write PHP script to a temporary file
+        await fs.promises.writeFile(`/tmp/${langConfig.filename}`, code)
+
+        // Execute PHP script
+        let command = `cd /tmp/ && timeout ${langConfig.timeout}s php ${langConfig.filename}`
+
+        // Provide input if stdin is provided
+        if (stdin) {
+            await fs.promises.writeFile('/tmp/input.txt', stdin)
+            command += ' < input.txt'
+        }
+
+        // Execute the command
+        const outputLog = await _runScript(command, res, true)
+        response.output = outputLog.error !== undefined
+            ? _prepareErrorMessage(outputLog, language, command)
+            : outputLog.result.stdout
+        if (outputLog.error) {
+            response.error = 1
+        }
+    } catch (e) {
+        logger.error(e)
+        throw new Error('Unable to execute PHP code.')
+    }
+}
+
+const _executeGoCode = async (req, res, response) => {
+    let code = null
+    let language = null
+    let stdin = null
+
+    try {
+        code = req.script
+        language = req.language
+        stdin = req.stdin
+        const langConfig = LANGUAGES_CONFIG[language]
+
+        // Clean up existing temporary files (if any)
+        await _runScript('rm -rf /tmp/*', res)
+
+        // Write Go code to a temporary file
+        await fs.promises.writeFile(`/tmp/${langConfig.filename}`, code)
+
+        // Compile Go code
+        const compileCommand = `cd /tmp/ && go build ${langConfig.filename}`
+        const compileLog = await _runScript(compileCommand, res, true)
+        response.compileMessage = compileLog.error !== undefined
+            ? _prepareErrorMessage(compileLog, language, compileCommand)
+            : ''
+
+        // Check if compilation was successful
+        if (response.compileMessage === '') {
+            // Execute the compiled binary
+            let command = `cd /tmp/ && timeout ${langConfig.timeout}s ./${langConfig.filename}`
+
+            // Provide input if stdin is provided
+            if (stdin) {
+                await fs.promises.writeFile('/tmp/input.txt', stdin)
+                command += ' < input.txt'
+            }
+
+            // Execute the command
+            const outputLog = await _runScript(command, res, true)
+            response.output = outputLog.error !== undefined
+                ? _prepareErrorMessage(outputLog, language, command)
+                : outputLog.result.stdout
+            if (outputLog.error) {
+                response.error = 1
+            }
+        } else {
+            response.error = 1
+        }
+    } catch (e) {
+        logger.error(e)
+        throw new Error('Unable to execute Go code.')
+    }
 }
 
 const _executeCode = async (req, res, response) => {
@@ -395,9 +487,9 @@ const _getAiScore = async (langConfig, question, response, points, userAnswer, r
 
 const _executeStatement = (db, sql) => {
     return new Promise((resolve, reject) => {
-        db.all(sql, function(err, rows) {
+        db.all(sql, function (err, rows) {
             if (err) {
-                reject(err);
+                reject(err)
             } else {
                 resolve(rows)
             }
@@ -416,7 +508,7 @@ const _executeSqlQueries = async (dbPath, queries) => {
 
     const sqlStatements = []
     try {
-        const ast = parser(queries);
+        const ast = parser(queries)
         if (!ast) {
             db.close()
             return { data: [] }
@@ -432,7 +524,7 @@ const _executeSqlQueries = async (dbPath, queries) => {
     for (let i = 0; i < sqlStatements.length; i++) {
         try {
             const res = await _executeStatement(db, sqlStatements[i])
-            if (i == sqlStatements.length - 1) {
+            if (i === sqlStatements.length - 1) {
                 db.close()
                 return { data: res }
             }
@@ -440,7 +532,7 @@ const _executeSqlQueries = async (dbPath, queries) => {
             logger.error(err)
             db.close()
             return {
-                error: true, data: `${err.message} at statement ${i + 1}`
+                error: true, data: `${err.message} at statement ${i + 1}`,
             }
         }
     }
@@ -520,9 +612,14 @@ const execute = async (req, res) => {
         await _executeMultiFile(req, res, response)
     } else if (req.language === supportedLanguages.SQLITE3) {
         await _executeSqlite3Query(req, res, response)
+    } else if (req.language === supportedLanguages.PHP) {
+        await _executePhpCode(req, res, response)
+    } else if (req.language === supportedLanguages.GO) {
+        await _executeGoCode(req, res, response)
     } else {
         await _executeCode(req, res, response)
     }
+
     return response
 }
 
@@ -671,23 +768,23 @@ const _runTests = async () => {
 
         // Parse the test results for all suites
         jasmineResults = await page.evaluate((summaryElement) => {
-            const suiteElements = summaryElement.querySelectorAll('.jasmine-suite');
+            const suiteElements = summaryElement.querySelectorAll('.jasmine-suite')
             const results = {
-                'success': [],
-                'failed': []
-            };
+                success: [],
+                failed: [],
+            }
 
             suiteElements.forEach((suiteElement) => {
-                const specElements = suiteElement.querySelectorAll(':scope > .jasmine-specs'); // only look at direct children to avoid duplicates
+                const specElements = suiteElement.querySelectorAll(':scope > .jasmine-specs') // only look at direct children to avoid duplicates
 
                 specElements.forEach((specElement) => {
                     const passedTests = Array.from(specElement.querySelectorAll('.jasmine-passed'), el => el.textContent)
                     const failedTests = Array.from(specElement.querySelectorAll('.jasmine-failed'), el => el.textContent)
 
-                    results['success'].push(...passedTests)
-                    results['failed'].push(...failedTests)
-                });
-            });
+                    results.success.push(...passedTests)
+                    results.failed.push(...failedTests)
+                })
+            })
 
             return results
         }, summaryElement)
@@ -731,11 +828,11 @@ const _killProcessOnPort = async (port) => {
 
         lsof.stdout.on('data', (data) => {
             stdout += data.toString();
-        });
+        })
 
         lsof.stderr.on('data', (data) => {
             stderr += data.toString();
-        });
+        })
 
         lsof.on('close', (code) => {
             logger.info(stdout)
@@ -803,6 +900,7 @@ const _preCleanUp = async () => {
     }
 }
 
+// eslint-disable-next-line camelcase
 const _checkIntegrity = async (non_editable_files) => {
     for (const [filePath, expectedHash] of Object.entries(non_editable_files)) {
         try {
@@ -834,9 +932,9 @@ const _executeMultiFile = async (req, res, response) => {
 
     try {
         let jasmineResults
-        if(req?.non_editable_files) {
+        if (req?.non_editable_files) {
             const isValidSubmission = await _checkIntegrity(req.non_editable_files)
-            if(!isValidSubmission) throw new Error(`A non editable file has been modified, exiting...`)
+            if (!isValidSubmission) throw new Error('A non editable file has been modified, exiting...')
         }
         if (req.type === FRONTEND_STATIC_JASMINE) {
             const staticServerInstance = await _startStaticServer(appConfig.multifile.staticServerPath)
@@ -844,11 +942,11 @@ const _executeMultiFile = async (req, res, response) => {
             if (staticServerInstance) {
                 staticServerInstance.close(() => {
                     logger.error('Static server closed')
-                });
+                })
             }
         } else {
             if (!fs.existsSync(appConfig.multifile.workingDir + 'package.json')) {
-                throw new Error(`No package.json found`)
+                throw new Error('No package.json found')
             }
             await _installDependencies(appConfig.multifile.workingDir)
             const jasmineServer = await _startJasmineServer()
@@ -864,7 +962,7 @@ const _executeMultiFile = async (req, res, response) => {
         } else {
             // respond with empty success and failed array
             logger.error(err)
-            response.errorMessage = "Error in running tests"
+            response.errorMessage = 'Error in running tests'
             response.statusCode = 200
             return response
         }

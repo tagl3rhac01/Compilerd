@@ -8,14 +8,10 @@
 [![Issues][issues-shield]][issues-url] -->
 
 
-
-
-
-
 ## Table of contents : 
 <ol>
   <li>
-    <a href="#about-the-project">About The Project</a>
+    <a href="#about-the-project">Changes Made</a>
   </li>
   <li><a href="#quick-usage">Quick Usage</a></li>
   <li><a href="#contribution">Contribution</a>
@@ -26,25 +22,20 @@
         <li><a href="#setting-up">Setting up</a></li>
     </ul>
     <ul>    
-        <li><a href="#making-changes">Making Changes</a></li>
+        <li><a href="#making-changes">Changes Made</a></li>
     </ul>
-    <ul>    
-        <li><a href="#running-tests">Running Tests</a></li>
-    </ul>
-    <ul>    
-        <li><a href="#Guidelines">Guidelines</a></li>
-    </ul>
-  </li>
-  <li><a href="#license">License</a></li>
+    
 
 </ol>
 
 
 
-## About The Project : 
+## Changes Made
 Compilerd is a online code judge for evaluating code submissions passed to it. It compiles and executes code in several languages and returns the result and various other properties in the response. The judge supports several languages including C++, Python, C, JavaScript (Node.js) and Java. 
-This is a service that is build using nodejs and express in the backend.
-It is fully customizable and can be adjusted as per requirement. Also, it has been tried and tested on Google Cloud Run and it just works seamlessly.
+
+Functionality of GO and PHP are added, changes made to the following configs:
+app.config.js
+language.config.js
 
 
 ## Quick Usage :
@@ -62,19 +53,24 @@ We will run the project locally and try to make a request to see a sample use ca
             "script" : "console.log('hello world')"
         } 
     ```
-  - You should see something like this in the response : 
-    ```json
-        {
-            "output": "hello world\n",
-            "execute_time": null,
-            "status_code": 200,
-            "memory": null,
-            "cpu_time": null,
-            "output_files": [],
-            "compile_message": "",
-            "error": 0
+  - Added Language.Config:
+  ```
+  [GO]: {
+        compile: 'go build -o solution solution.go',
+        run: './solution', // Corrected the run command
+        timeout: 10,
+        filename: 'solution.go',
+        memory: ALLOWED_RAM * ONE_MB,
+    },
+    [PHP]: {
+        compile: null, // PHP is an interpreted language
+        run: 'php solution.php',
+        timeout: 10,
+        filename: 'solution.php',
+        memory: ALLOWED_RAM * ONE_MB,
         }
-    ```
+  ```
+    
 
 ## Languages supported :
   - C
@@ -83,21 +79,9 @@ We will run the project locally and try to make a request to see a sample use ca
   - Java
   - Node.js
   - Ruby
-
-## Contribution :
-
-### Prerequisites:
-For local development we should have the following dependencies set up locally in our system
-  - Nodejs : [nodejs](https://nodejs.org/en/download)
-  - Npm : this comes automatically with nodejs installation
-  - Docker : [docker](https://docs.docker.com/get-docker/)
-  - Postman or alternative : [Postman](https://www.postman.com/downloads/)
-  - Git : [Git](https://git-scm.com/downloads)
-
-
-### Setting up :
-  - Fork the repository using Github UI.
-  - Clone locally from the forked repo.
+  NEWLY ADDED:
+  - GO
+  - PHP
 
 ### Making changes:
   - Make sure to create a new branch on top of the main branch : ```git checkout -b <name>```
@@ -111,7 +95,6 @@ For local development we should have the following dependencies set up locally i
     - ```docker run -p 3000:3000 -e OPENAI_API_KEY=<your-api-key> -e ALLOWED_RAM=<allowed-ram-value> <image-name>```
   - Execute the test script by running command ```node ./tests/test.js```
   - Summary can be seen on the console when all the tests have finished.
-
 
 
 ### Guidelines :
@@ -128,8 +111,6 @@ For local development we should have the following dependencies set up locally i
 
 <!-- LICENSE -->
 ## License : 
-
-
 
 [contributors-shield]: https://img.shields.io/github/contributors/othneildrew/Best-README-Template.svg?style=for-the-badge
 [contributors-url]: https://github.com/othneildrew/Best-README-Template/graphs/contributors
